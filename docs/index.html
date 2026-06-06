@@ -1,94 +1,194 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html>
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
-  <title>Shared Display</title>
-  <style>
-    html, body {
-      margin: 0;
-      padding: 0;
-      height: 100%;
-      background: #000;
-      color: #fff;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      -webkit-font-smoothing: antialiased;
-    }
-    body {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: space-between;
-      padding: 4vh 4vw;
-      box-sizing: border-box;
-    }
-    #message-area {
-      width: 100%;
-      min-height: 2.4em;
-      line-height: 1.2;
-      font-weight: 500;
-      font-size: 4.5vw;
-      text-align: center;
-      word-wrap: break-word;
-      overflow-wrap: anywhere;
-    }
-    #clock {
-      font-weight: 300;
-      font-size: 26vw;
-      letter-spacing: -0.02em;
-      line-height: 1;
-      font-variant-numeric: tabular-nums;
-      font-feature-settings: "tnum";
-      text-align: center;
-      user-select: none;
-    }
-    #controls {
-      width: 100%;
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 1.2vw;
-    }
-    .btn-row {
-      display: contents;
-    }
-    button {
-      font-size: 5vw;
-      padding: 4vh 2vw;
-      border-radius: 9999px;
-      border: 0;
-      background: #111;
-      color: #fff;
-      font-weight: 600;
-      letter-spacing: 0.02em;
-      min-height: 14vh;
-    }
-    button:active {
-      background: #222;
-    }
-  </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+<title>Hermes Display</title>
+<style>
+  html, body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    background: #000;
+    color: #fff;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+    padding: 4vh 4vw;
+    box-sizing: border-box;
+  }
+  #message-area {
+    width: 100%;
+    min-height: 2.4em;
+    line-height: 1.2;
+    font-weight: 500;
+    font-size: 4.5vw;
+    text-align: center;
+    word-wrap: break-word;
+    overflow-wrap: anywhere;
+  }
+  #clock {
+    font-weight: 300;
+    font-size: 26vw;
+    letter-spacing: -0.02em;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum";
+    text-align: center;
+    user-select: none;
+  }
+  #timer {
+    width: 100%;
+    min-height: 2em;
+    line-height: 1.2;
+    font-weight: 600;
+    font-size: 5.5vw;
+    text-align: center;
+    color: #ffd;
+    word-wrap: break-word;
+    overflow-wrap: anywhere;
+    display: none;
+  }
+  #stopwatch {
+    width: 100%;
+    min-height: 2em;
+    line-height: 1;
+    font-weight: 600;
+    font-size: 6vw;
+    text-align: center;
+    color: #ffd;
+    word-wrap: break-word;
+    overflow-wrap: anywhere;
+    display: none;
+  }
+  #controls {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.2vw;
+  }
+  button {
+    font-size: 5vw;
+    padding: 4vh 2vw;
+    border-radius: 9999px;
+    border: 0;
+    background: #111;
+    color: #fff;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    min-height: 14vh;
+  }
+  button:active {
+    background: #222;
+  }
+</style>
 </head>
 <body>
-  <div id="message-area">Hello</div>
+  <div id="message-area"></div>
   <div id="clock">--:--</div>
+  <div id="timer">00:00:00</div>
+  <div id="stopwatch">00:00:00</div>
   <div id="controls">
-    <button>A</button>
-    <button>B</button>
-    <button>C</button>
-    <button>D</button>
+    <button id="btn-timer">Таймер</button>
+    <button id="btn-stopwatch">Секундомер</button>
+    <button id="btn-message">Обновить</button>
+    <button id="btn-reset">Сброс</button>
   </div>
 
   <script>
-    const clock = document.getElementById('clock');
     const messageArea = document.getElementById('message-area');
+    const clockEl = document.getElementById('clock');
+    const timerEl = document.getElementById('timer');
+    const stopwatchEl = document.getElementById('stopwatch');
+
     function updateClock() {
       const now = new Date();
       const hours = String(now.getHours()).padStart(2, '0');
       const minutes = String(now.getMinutes()).padStart(2, '0');
-      clock.textContent = `${hours}:${minutes}`;
+      clockEl.textContent = `${hours}:${minutes}`;
     }
     updateClock();
     setInterval(updateClock, 1000);
+
+    const state = {
+      timerInterval: null,
+      timerRemaining: 0,
+      stopwatchInterval: null,
+      stopwatchRunning: false,
+      stopwatchElapsed: 0
+    };
+
+    function formatTime(totalSeconds) {
+      const h = String(Math.floor(totalSeconds / 3600)).padStart(2, '0');
+      const m = String(Math.floor((totalSeconds % 3600) / 60)).padStart(2, '0');
+      const s = String(totalSeconds % 60).padStart(2, '0');
+      return `${h}:${m}:${s}`;
+    }
+
+    function startTimer(minutes) {
+      clearInterval(state.timerInterval);
+      state.timerRemaining = minutes * 60;
+      timerEl.style.display = 'block';
+      timerEl.textContent = formatTime(state.timerRemaining);
+      state.timerInterval = setInterval(() => {
+        state.timerRemaining -= 1;
+        if (state.timerRemaining <= 0) {
+          clearInterval(state.timerInterval);
+          state.timerInterval = null;
+          timerEl.textContent = '00:00:00';
+          try { if (typeof playBeep === 'function') playBeep(); } catch (e) {}
+        } else {
+          timerEl.textContent = formatTime(state.timerRemaining);
+        }
+      }, 1000);
+    }
+
+    function toggleStopwatch() {
+      if (state.stopwatchRunning) {
+        clearInterval(state.stopwatchInterval);
+        state.stopwatchInterval = null;
+        state.stopwatchRunning = false;
+      } else {
+        stopwatchEl.style.display = 'block';
+        state.stopwatchRunning = true;
+        state.stopwatchInterval = setInterval(() => {
+          state.stopwatchElapsed += 1;
+          stopwatchEl.textContent = formatTime(state.stopwatchElapsed);
+        }, 1000);
+      }
+    }
+
+    function updateMessage() {
+      const text = prompt('Новое сообщение:', messageArea.textContent || '');
+      if (text !== null) {
+        messageArea.textContent = text;
+      }
+    }
+
+    function resetAll() {
+      clearInterval(state.timerInterval);
+      clearInterval(state.stopwatchInterval);
+      state.timerInterval = null;
+      state.stopwatchInterval = null;
+      state.stopwatchRunning = false;
+      state.timerRemaining = 0;
+      state.stopwatchElapsed = 0;
+      timerEl.style.display = 'none';
+      timerEl.textContent = '00:00:00';
+      stopwatchEl.style.display = 'none';
+      stopwatchEl.textContent = '00:00:00';
+      messageArea.textContent = '';
+    }
+
+    document.getElementById('btn-timer').addEventListener('click', () => startTimer(5));
+    document.getElementById('btn-stopwatch').addEventListener('click', toggleStopwatch);
+    document.getElementById('btn-message').addEventListener('click', updateMessage);
+    document.getElementById('btn-reset').addEventListener('click', resetAll);
   </script>
 </body>
 </html>
-<!-- rebuild trigger -->
